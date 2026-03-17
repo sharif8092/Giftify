@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 // Point to our new Express backend proxy
-// @ts-ignore
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000/api/woo';
+// Use relative path so it works on both localhost and production
+const BACKEND_URL = '/api/woo';
 
 const wooCommerceService = axios.create({
     baseURL: BACKEND_URL,
