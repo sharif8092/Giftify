@@ -44,8 +44,8 @@ const wooClient = axios.create({
     },
 });
 
+// WooCommerce Proxy Endpoints
 app.get('/api/woo/products', async (req, res) => {
-    console.log(`Fetching products from: ${WC_URL}/wp-json/wc/v3/products`);
     try {
         const response = await wooClient.get('/products', { params: req.query });
         res.json(response.data);
@@ -55,8 +55,17 @@ app.get('/api/woo/products', async (req, res) => {
     }
 });
 
+app.get('/api/woo/products/:id', async (req, res) => {
+    try {
+        const response = await wooClient.get(`/products/${req.params.id}`, { params: req.query });
+        res.json(response.data);
+    } catch (error) {
+        console.error(`WooCommerce API Error (Product ${req.params.id}):`, error.response?.data || error.message);
+        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Failed to fetch product' });
+    }
+});
+
 app.get('/api/woo/products/categories', async (req, res) => {
-    console.log(`Fetching categories from: ${WC_URL}/wp-json/wc/v3/products/categories`);
     try {
         const response = await wooClient.get('/products/categories', { params: req.query });
         res.json(response.data);
@@ -66,8 +75,17 @@ app.get('/api/woo/products/categories', async (req, res) => {
     }
 });
 
+app.get('/api/woo/coupons', async (req, res) => {
+    try {
+        const response = await wooClient.get('/coupons', { params: req.query });
+        res.json(response.data);
+    } catch (error) {
+        console.error('WooCommerce API Error (Coupons):', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Failed to fetch coupons' });
+    }
+});
+
 app.post('/api/woo/orders', async (req, res) => {
-    console.log(`Creating order at: ${WC_URL}/wp-json/wc/v3/orders`);
     try {
         const response = await wooClient.post('/orders', req.body);
         res.status(201).json(response.data);
@@ -77,14 +95,20 @@ app.post('/api/woo/orders', async (req, res) => {
     }
 });
 
-app.get('/api/woo/coupons', async (req, res) => {
-    console.log(`Fetching coupons from: ${WC_URL}/wp-json/wc/v3/coupons`);
+// Generalized WordPress Proxy (for Blog components)
+const wpClient = axios.create({
+    baseURL: `${WC_URL}/wp-json/wp/v2`,
+});
+
+app.get('/api/woo/wp/*', async (req, res) => {
+    const subPath = req.params[0];
+    console.log(`Fetching WP data: /wp-json/wp/v2/${subPath}`);
     try {
-        const response = await wooClient.get('/coupons', { params: req.query });
+        const response = await wpClient.get(`/${subPath}`, { params: req.query });
         res.json(response.data);
     } catch (error) {
-        console.error('WooCommerce API Error (Coupons):', error.response?.data || error.message);
-        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Failed to fetch coupons' });
+        console.error(`WordPress API Error (${subPath}):`, error.response?.data || error.message);
+        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Failed to fetch WP data' });
     }
 });
 

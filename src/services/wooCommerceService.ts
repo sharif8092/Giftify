@@ -10,7 +10,7 @@ const wooCommerceService = axios.create({
 });
 
 export const wpService = axios.create({
-    baseURL: `${BACKEND_URL}/wp-posts`,
+    baseURL: `${BACKEND_URL}/wp`,
 });
 
 // Add interceptor for JWT token (if still needed for backend auth)
