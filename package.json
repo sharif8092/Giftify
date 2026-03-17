@@ -9,6 +9,7 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
     "start": "node server.js",
     "build": "vite build",
+    "postinstall": "npm run build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
