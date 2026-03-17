@@ -21,6 +21,20 @@ const WC_URL = process.env.WC_URL;
 const CONSUMER_KEY = process.env.WC_CONSUMER_KEY;
 const CONSUMER_SECRET = process.env.WC_CONSUMER_SECRET;
 
+// Middleware to check for credentials
+const checkCredentials = (req, res, next) => {
+    if (!WC_URL || !CONSUMER_KEY || !CONSUMER_SECRET) {
+        console.error('CRITICAL: Missing WooCommerce Environment Variables!');
+        return res.status(400).json({ 
+            error: 'Backend Configuration Error', 
+            details: 'One or more environment variables (WC_URL, WC_CONSUMER_KEY, WC_CONSUMER_SECRET) are missing on the server.' 
+        });
+    }
+    next();
+};
+
+app.use('/api/woo', checkCredentials);
+
 // Proxy Endpoints
 const wooClient = axios.create({
     baseURL: `${WC_URL}/wp-json/wc/v3`,
