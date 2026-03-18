@@ -15,6 +15,20 @@ export default defineConfig(({mode}) => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('lucide-react')) return 'icons';
+              if (id.includes('motion')) return 'animations';
+              return 'vendor';
+            }
+          }
+        }
+      },
+      chunkSizeWarningLimit: 1000,
+    },
     server: {
       proxy: {
         '/wp-json': {

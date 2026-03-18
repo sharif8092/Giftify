@@ -40,6 +40,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }) => {
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1.5s] ease-out"
             referrerPolicy="no-referrer"
+            loading="lazy"
           />
         </Link>
 

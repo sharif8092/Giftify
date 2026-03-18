@@ -12,21 +12,21 @@ import SEO from '../components/SEO';
 
 const DEFAULT_HERO_SLIDES = [
   {
-    image: 'https://images.unsplash.com/photo-1549463591-147604d4c815?q=80&w=1920&auto=format&fit=crop', // Corporate Gift Boxes
+    image: 'https://images.unsplash.com/photo-1549463591-147604d4c815?q=80&w=1920&auto=format&fit=crop&fm=webp', // Corporate Gift Boxes
     subtitle: 'Excellence in Corporate Gifting',
     title: 'Premium Business Gifts',
     desc: 'Thoughtfully curated luxury gift sets for your valued partners and employees.',
     link: '/products',
   },
   {
-    image: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?q=80&w=1920&auto=format&fit=crop', // Wrapped gifts
+    image: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?q=80&w=1920&auto=format&fit=crop&fm=webp', // Wrapped gifts
     subtitle: 'Custom Branding Available',
     title: 'Bespoke Curations',
     desc: 'Personalize every gift with your corporate identity for a lasting impression.',
     link: '/products',
   },
   {
-    image: 'https://images.unsplash.com/photo-1523293836414-f04e712e1f3b?q=80&w=1920&auto=format&fit=crop', // Elegant Desk/Gift
+    image: 'https://images.unsplash.com/photo-1523293836414-f04e712e1f3b?q=80&w=1920&auto=format&fit=crop&fm=webp', // Elegant Desk/Gift
     subtitle: 'Bulk Orders Simplified',
     title: 'Seamless Logistics',
     desc: 'From curation to doorstep delivery, we handle your festive gifting at scale.',
@@ -147,6 +147,8 @@ const Home: React.FC = () => {
                 alt={slide.title}
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
+                fetchPriority={i === 0 ? "high" : "auto"}
+                loading={i === 0 ? "eager" : "lazy"}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
@@ -301,10 +303,10 @@ const Home: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { label: 'Under ₹500', min: 0, max: 500, image: 'https://images.unsplash.com/photo-1549463591-147604d4c815?q=80&w=800&auto=format&fit=crop' },
-              { label: '₹500 - ₹1000', min: 500, max: 1000, image: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?q=80&w=800&auto=format&fit=crop' },
-              { label: '₹1000 - ₹2000', min: 1000, max: 2000, image: 'https://images.unsplash.com/photo-1523293836414-f04e712e1f3b?q=80&w=800&auto=format&fit=crop' },
-              { label: 'Premium Gifts', min: 2000, max: 50000, image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=800&auto=format&fit=crop' },
+              { label: 'Under ₹500', min: 0, max: 500, image: 'https://images.unsplash.com/photo-1549463591-147604d4c815?q=80&w=800&auto=format&fit=crop&fm=webp' },
+              { label: '₹500 - ₹1000', min: 500, max: 1000, image: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?q=80&w=800&auto=format&fit=crop&fm=webp' },
+              { label: '₹1000 - ₹2000', min: 1000, max: 2000, image: 'https://images.unsplash.com/photo-1523293836414-f04e712e1f3b?q=80&w=800&auto=format&fit=crop&fm=webp' },
+              { label: 'Premium Gifts', min: 2000, max: 50000, image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=800&auto=format&fit=crop&fm=webp' },
             ].map((budget, i) => (
               <Link 
                 key={i}
