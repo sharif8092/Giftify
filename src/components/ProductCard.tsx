@@ -36,8 +36,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }) => {
       <div className="relative aspect-[4/5] overflow-hidden rounded-[2.5rem] bg-stone-100 mb-6">
         <Link to={`/product/${product.id}`} className="block w-full h-full">
           <img
-            src={(product.thumbnails && product.thumbnails.length > 0) ? product.thumbnails[0] : product.images[0]}
-            alt={product.imageAlts?.[0] || product.name}
+            src={product.thumbnails?.[0] || product.images?.[0] || ''}
+            alt={product.imageAlts?.[0] || product.name || 'Product'}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1.5s] ease-out"
             referrerPolicy="no-referrer"
             loading="lazy"

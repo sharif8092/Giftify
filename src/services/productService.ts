@@ -3,25 +3,32 @@ import { Product } from '../types';
 import { normalizeCategory } from '../utils/formatUtils';
 
 const mapWooProductToInternal = (wooProduct: any): Product => {
+    if (!wooProduct) {
+        throw new Error('Attempted to map null or undefined WooCommerce product');
+    }
+    
     return {
-        id: wooProduct.id.toString(),
-        name: wooProduct.name,
-        description: wooProduct.description,
-        price: parseFloat(wooProduct.price),
+        id: (wooProduct.id || Math.random()).toString(),
+        name: wooProduct.name || 'Untitled Product',
+        description: wooProduct.description || '',
+        price: parseFloat(wooProduct.price) || 0,
         originalPrice: wooProduct.regular_price ? parseFloat(wooProduct.regular_price) : undefined,
-        categories: (wooProduct.categories && wooProduct.categories.length > 0)
+        categories: (wooProduct.categories && Array.isArray(wooProduct.categories) && wooProduct.categories.length > 0)
             ? wooProduct.categories.map((c: any) => c.name)
             : ['Collection'],
-        images: wooProduct.images.map((img: any) => img.src),
-        thumbnails: wooProduct.images.map((img: any) => {
-            // Check for specific WooCommerce sizes if available
-            return img.src; // Fallback to src
-        }),
-        imageAlts: wooProduct.images.map((img: any) => img.alt || wooProduct.name),
+        images: (wooProduct.images && Array.isArray(wooProduct.images)) 
+            ? wooProduct.images.map((img: any) => img.src) 
+            : [],
+        thumbnails: (wooProduct.images && Array.isArray(wooProduct.images))
+            ? wooProduct.images.map((img: any) => img.src)
+            : [],
+        imageAlts: (wooProduct.images && Array.isArray(wooProduct.images))
+            ? wooProduct.images.map((img: any) => img.alt || wooProduct.name || 'Product image')
+            : [],
         stock: wooProduct.stock_quantity || 0,
-        featured: wooProduct.featured,
+        featured: !!wooProduct.featured,
         rating: parseFloat(wooProduct.average_rating) || 0,
-        reviewCount: wooProduct.rating_count || wooProduct.review_count || (parseFloat(wooProduct.average_rating) > 0 ? 1 : 0),
+        reviewCount: wooProduct.rating_count || wooProduct.review_count || 0,
         totalSales: parseInt(wooProduct.total_sales) || 0,
     };
 };
@@ -44,7 +51,9 @@ export const productService = {
                 per_page: 50 // Fetch a good chunk
             }
         });
-        const mapped = (response.data as any[]).map(mapWooProductToInternal);
+        
+        const data = Array.isArray(response.data) ? response.data : [];
+        const mapped = data.map(mapWooProductToInternal);
         
         productCache[cacheKey] = {
             data: mapped,
@@ -62,7 +71,8 @@ export const productService = {
                 per_page: limitCount
             }
         });
-        return (response.data as any[]).map(mapWooProductToInternal);
+        const data = Array.isArray(response.data) ? response.data : [];
+        return data.map(mapWooProductToInternal);
     },
 
     // Get products by category
@@ -72,10 +82,11 @@ export const productService = {
         // A better way would be to fetch by category ID.
         const response = await wooCommerceService.get('/products', {
             params: {
-                category: category // WooCommerce supports category ID or slug, but let's check if name works or if we need to fetch categories first.
+                category: category // WooCommerce supports category ID or slug
             }
         });
-        return (response.data as any[]).map(mapWooProductToInternal);
+        const data = Array.isArray(response.data) ? response.data : [];
+        return data.map(mapWooProductToInternal);
     },
 
     // Get single product
@@ -127,5 +138,16 @@ export const productService = {
         await wooCommerceService.delete(`/products/${id}`, {
             params: { force: true }
         });
+    },
+
+    // Get backend configuration
+    async getBackendConfig(): Promise<any> {
+        try {
+            const response = await wooCommerceService.get('/config');
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching backend config:', error);
+            return null;
+        }
     }
 };

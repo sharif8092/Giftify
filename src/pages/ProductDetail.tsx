@@ -39,6 +39,7 @@ const ProductDetail: React.FC = () => {
   const [selectedBranding, setSelectedBranding] = useState<string>('None');
   const [backendConfig, setBackendConfig] = useState<any>(null);
   const [isSample, setIsSample] = useState(false);
+  const [activeTab, setActiveTab] = useState<'description' | 'customization' | 'reviews'>('description');
 
   const brandingOptions = useMemo(() => {
     if (backendConfig?.branding_options) {
@@ -114,35 +115,47 @@ const ProductDetail: React.FC = () => {
     const fetchProductData = async () => {
       if (!id) return;
       setLoading(true);
+      
+      // 1. Fetch Config (Non-blocking)
       try {
-        const [found, configResponse] = await Promise.all([
-          productService.getProductById(id),
-          import('../services/wooCommerceService').then(m => m.default.get('/config'))
-        ]) as [Product | null, any];
-
-        if (configResponse.data) {
-          const config = configResponse.data;
-          setBackendConfig(config);
-          if (config.moq_default) setQuantity(config.moq_default);
+        const configResponse = await productService.getBackendConfig();
+        if (configResponse) {
+          setBackendConfig(configResponse);
+          if (configResponse.moq_default) setQuantity(configResponse.moq_default);
         }
+      } catch (err) {
+        console.warn('Backend config fetch failed, using frontend defaults:', err);
+      }
 
+      // 2. Fetch Product (Critical)
+      try {
+        const found = await productService.getProductById(id);
         if (found) {
+          console.log('Successfully fetched product:', found.id, found.name);
           setProduct(found);
-          // Fetch related
+          
+          // 3. Fetch Related & Reviews (Async)
           const primaryCategory = found.categories[0] || 'Uncategorized';
-          const related = await productService.getProductsByCategory(primaryCategory);
-          setRelatedProducts(related.filter(p => p.id !== found.id).slice(0, 4));
+          productService.getProductsByCategory(primaryCategory)
+            .then(related => setRelatedProducts(related.filter(p => p.id !== found.id).slice(0, 4)))
+            .catch(err => console.error('Error fetching related products:', err));
 
-          // Fetch reviews
           setLoadingReviews(true);
-          const productReviews = await reviewService.getReviewsByProductId(id);
-          setReviews(productReviews);
-          setLoadingReviews(false);
+          reviewService.getReviewsByProductId(id)
+            .then(productReviews => {
+              setReviews(productReviews);
+              setLoadingReviews(false);
+            })
+            .catch(err => {
+              console.error('Error fetching reviews:', err);
+              setLoadingReviews(false);
+            });
         }
       } catch (error) {
-        console.error('Error fetching product detail:', error);
+        console.error('Fatal error fetching product detail:', error);
       } finally {
         setLoading(false);
+        window.scrollTo(0, 0);
       }
     };
     fetchProductData();
@@ -179,6 +192,35 @@ const ProductDetail: React.FC = () => {
       setSubmittingReview(false);
     }
   };
+
+  const productSchema = useMemo(() => {
+    if (!product) return null;
+    return {
+      "@context": "https://schema.org/",
+      "@type": "Product",
+      "name": product.name,
+      "image": product.images,
+      "description": (product.description || '').replace(/<[^>]*>?/gm, ''), // Strip HTML
+      "brand": {
+        "@type": "Brand",
+        "name": "Ababil"
+      },
+      "sku": product.id,
+      "offers": {
+        "@type": "Offer",
+        "url": window.location.href,
+        "priceCurrency": "INR",
+        "price": product.price,
+        "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "priceValidUntil": "2026-12-31"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": product.rating,
+        "reviewCount": product.reviewCount
+      }
+    };
+  }, [product]);
 
   const discount = product?.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -223,46 +265,18 @@ const ProductDetail: React.FC = () => {
     );
   }
 
-  const productSchema = useMemo(() => {
-    if (!product) return null;
-    return {
-      "@context": "https://schema.org/",
-      "@type": "Product",
-      "name": product.name,
-      "image": product.images,
-      "description": product.description.replace(/<[^>]*>?/gm, ''), // Strip HTML
-      "brand": {
-        "@type": "Brand",
-        "name": "Ababil"
-      },
-      "sku": product.id,
-      "offers": {
-        "@type": "Offer",
-        "url": window.location.href,
-        "priceCurrency": "INR",
-        "price": product.price,
-        "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-        "priceValidUntil": "2026-12-31"
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": product.rating,
-        "reviewCount": product.reviewCount
-      }
-    };
-  }, [product]);
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
       {product && (
         <SEO 
           title={product.name}
-          description={product.description.replace(/<[^>]*>?/gm, '').slice(0, 160)}
+          description={(product.description || '').replace(/<[^>]*>?/gm, '').slice(0, 160)}
           ogType="product"
-          ogImage={product.images[0]}
-          jsonLd={productSchema}
+          ogImage={product.images?.[0] || ''}
+          jsonLd={productSchema || undefined}
         />
       )}
+      {/* ═══ Main Product Section ═══ */}
       <div className="flex flex-col lg:flex-row gap-24">
         {/* Image Gallery */}
         <div className="w-full lg:w-1/2 space-y-8">
@@ -277,8 +291,8 @@ const ProductDetail: React.FC = () => {
                 key={selectedImage}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                src={product?.images[selectedImage]}
-                alt={product?.name}
+                src={product?.images?.[selectedImage] || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=2040&auto=format&fit=crop'}
+                alt={product?.name || 'Product'}
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />
@@ -321,7 +335,7 @@ const ProductDetail: React.FC = () => {
               <span className="text-stone-900">{product?.categories[0] || 'Uncategorized'}</span>
             </nav>
             <h1 className="text-5xl md:text-7xl font-serif text-stone-900 leading-tight">
-              {product?.name.split(' ').map((word, i) => (
+              {(product?.name || '').split(' ').map((word, i) => (
                 i === 1 ? <span key={i} className="italic font-light block">{word}</span> : <span key={i}>{word} </span>
               ))}
             </h1>
@@ -331,9 +345,9 @@ const ProductDetail: React.FC = () => {
                   <span className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-1">Bulk Price / Unit</span>
                   <div className="flex items-center gap-3">
                     {product?.originalPrice && (
-                      <p className="text-xl font-serif text-stone-300 line-through">₹{product.originalPrice.toLocaleString()}</p>
+                      <p className="text-xl font-serif text-stone-300 line-through">₹{Number(product.originalPrice || 0).toLocaleString()}</p>
                     )}
-                    <p className="text-4xl font-serif italic text-stone-900">₹{currentUnitPrice.toLocaleString()}</p>
+                    <p className="text-4xl font-serif italic text-stone-900">₹{Number(currentUnitPrice || 0).toLocaleString()}</p>
                   </div>
                 </div>
               </div>
@@ -366,10 +380,169 @@ const ProductDetail: React.FC = () => {
             </div>
           </div>
 
-          <div
-            className="text-stone-500 text-lg leading-relaxed font-light max-w-lg product-description"
-            dangerouslySetInnerHTML={{ __html: product?.description || '' }}
-          />
+          {/* ═══ PRODUCT TABS ═══ */}
+          <div className="space-y-8">
+            <div className="flex border-b border-stone-100 gap-12">
+              {['description', 'customization', 'reviews'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab as any)}
+                  className={`pb-4 text-[10px] uppercase tracking-[0.2em] font-bold transition-all relative ${
+                    activeTab === tab ? 'text-stone-900' : 'text-stone-300 hover:text-stone-500'
+                  }`}
+                >
+                  {tab === 'description' ? 'Product Story' : tab === 'customization' ? 'Customization' : `Reviews (${reviews.length})`}
+                  {activeTab === tab && (
+                    <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-stone-900" />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <AnimatePresence mode="wait">
+              {activeTab === 'description' && (
+                <motion.div
+                  key="description"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="text-stone-500 text-lg leading-relaxed font-light max-w-lg product-description"
+                  dangerouslySetInnerHTML={{ __html: product?.description || '' }}
+                />
+              )}
+
+              {activeTab === 'customization' && (
+                <motion.div
+                  key="customization"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-8 max-w-lg"
+                >
+                  <div className="bg-stone-50 rounded-3xl p-8 border border-stone-100 space-y-6">
+                    <h4 className="text-xs font-serif italic text-stone-900">How to Customize your Order</h4>
+                    <div className="space-y-6">
+                      {[
+                        { step: '01', title: 'Select Quantity', desc: 'Choose your desired volume to see bulk pricing advantage.' },
+                        { step: '02', title: 'Share your Identity', desc: 'Once you place the inquiry, our team will contact you for your brand logo.' },
+                        { step: '03', title: 'Finalize Mockup', desc: 'Our design studio will provide a digital mockup for approval within 24h.' }
+                      ].map((s, idx) => (
+                        <div key={idx} className="flex gap-4">
+                          <span className="text-[10px] font-bold text-stone-300 mt-1">{s.step}</span>
+                          <div>
+                            <h5 className="text-[11px] font-bold text-stone-900 uppercase tracking-tighter mb-1">{s.title}</h5>
+                            <p className="text-[10px] text-stone-500 font-light">{s.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                    <Sparkles size={16} className="text-emerald-600" />
+                    <p className="text-[10px] text-emerald-800 font-medium">Free branding on orders above {backendConfig?.moq_default || 50} units.</p>
+                  </div>
+                </motion.div>
+              )}
+              
+              {activeTab === 'reviews' && (
+                <motion.div
+                  key="reviews"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-12"
+                >
+                  <div className="flex flex-col md:flex-row items-baseline justify-between gap-8">
+                    <div>
+                      <h4 className="text-xs font-serif italic text-stone-900 mb-4">What our Clients say</h4>
+                      <div className="flex items-center gap-4">
+                        <div className="text-4xl font-serif text-stone-900">{product?.rating}</div>
+                        <div className="space-y-1">
+                          <div className="flex text-amber-400">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} size={14} fill={i < Math.floor(product?.rating || 0) ? "currentColor" : "none"} className={i < Math.floor(product?.rating || 0) ? "" : "text-stone-200"} />
+                            ))}
+                          </div>
+                          <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400">Based on {reviews.length} reviews</p>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowReviewForm(!showReviewForm)}
+                      className="text-[9px] uppercase tracking-widest font-bold text-stone-500 hover:text-stone-900 border-b border-stone-200 pb-1"
+                    >
+                      {showReviewForm ? 'Cancel Review' : 'Write a Review'}
+                    </button>
+                  </div>
+
+                  <AnimatePresence>
+                    {showReviewForm && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <form onSubmit={handleSubmitReview} className="bg-stone-50 rounded-3xl p-8 space-y-6">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-[9px] font-bold uppercase tracking-widest text-stone-400">Name</label>
+                              <input
+                                required
+                                type="text"
+                                className="w-full bg-white border-none rounded-xl px-4 py-3 text-xs outline-none"
+                                value={newReview.reviewer}
+                                onChange={e => setNewReview({ ...newReview, reviewer: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[9px] font-bold uppercase tracking-widest text-stone-400">Rating</label>
+                              <div className="flex gap-1">
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <button key={s} type="button" onClick={() => setNewReview({...newReview, rating: s})} className={newReview.rating >= s ? 'text-amber-400' : 'text-stone-200'}>
+                                    <Star size={16} fill={newReview.rating >= s ? 'currentColor' : 'none'} />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <textarea
+                            required
+                            rows={3}
+                            className="w-full bg-white border-none rounded-xl px-4 py-3 text-xs outline-none resize-none"
+                            placeholder="Your review..."
+                            value={newReview.review}
+                            onChange={e => setNewReview({ ...newReview, review: e.target.value })}
+                          />
+                          <button type="submit" disabled={submittingReview} className="bg-stone-900 text-white px-8 py-3 rounded-full text-[9px] font-bold uppercase tracking-widest">
+                            {submittingReview ? 'Posting...' : 'Submit Review'}
+                          </button>
+                        </form>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="space-y-6">
+                    {reviews.length === 0 ? (
+                      <p className="text-xs text-stone-400 italic">No reviews yet.</p>
+                    ) : (
+                      reviews.slice(0, 3).map((r, i) => (
+                        <div key={i} className="bg-stone-50 p-6 rounded-2xl space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-bold text-stone-900 uppercase">{r.reviewer}</span>
+                            <div className="flex text-amber-400">
+                              {[...Array(r.rating)].map((_, j) => <Star key={j} size={10} fill="currentColor" />)}
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-stone-500 font-light leading-relaxed">{r.review}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           {/* ═══ ORDER OPTIONS ═══ */}
           <div className="space-y-12">
@@ -737,167 +910,6 @@ const ProductDetail: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Reviews Section */}
-      <section className="mt-40 pt-24 border-t border-stone-100">
-        <div className="flex flex-col md:flex-row items-baseline justify-between mb-16 gap-8">
-          <div>
-            <span className="text-emerald-800 text-[10px] uppercase tracking-[0.3em] font-bold mb-2 block">Customer Stories</span>
-            <h2 className="text-4xl md:text-5xl font-serif text-stone-900">Reviews & <span className="italic">Experiences</span></h2>
-            <div className="flex items-center gap-4 mt-6">
-              <div className="text-5xl font-serif text-stone-900">{product?.rating}</div>
-              <div className="space-y-1">
-                <div className="flex text-amber-400">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={14} fill={i < Math.floor(product?.rating || 0) ? "currentColor" : "none"} className={i < Math.floor(product?.rating || 0) ? "" : "text-stone-200"} />
-                  ))}
-                </div>
-                <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400">Based on {Math.max(product?.reviewCount || 0, reviews.length)} reviews</p>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowReviewForm(!showReviewForm)}
-            className="group inline-flex items-center gap-3 bg-stone-900 text-white px-10 py-5 rounded-full font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-emerald-900 transition-all shadow-xl"
-          >
-            <span>{showReviewForm ? 'Cancel Review' : 'Write a Review'}</span>
-            <MessageSquare size={14} className="group-hover:rotate-12 transition-transform" />
-          </button>
-        </div>
-
-        {/* Review Form */}
-        <AnimatePresence>
-          {showReviewForm && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden mb-24"
-            >
-              <form onSubmit={handleSubmitReview} className="bg-stone-50 rounded-[3rem] p-8 md:p-12 space-y-8 max-w-2xl">
-                <div className="space-y-4">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 block">Rating</label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setNewReview({ ...newReview, rating: star })}
-                        className={`transition-colors ${newReview.rating >= star ? 'text-amber-400' : 'text-stone-300'}`}
-                      >
-                        <Star size={24} fill={newReview.rating >= star ? "currentColor" : "none"} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {profile ? (
-                    <div className="col-span-2 bg-emerald-50/50 p-4 rounded-xl flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-emerald-200 flex items-center justify-center font-bold text-emerald-700 text-xs">
-                        {profile.displayName?.charAt(0) || profile.email.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-emerald-900 uppercase tracking-widest">Logged in as</p>
-                        <p className="text-xs text-emerald-700">{profile.displayName || profile.email}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Name</label>
-                        <input
-                          required
-                          type="text"
-                          className="w-full bg-white border-none rounded-2xl px-6 py-4 text-sm focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
-                          placeholder="Your name"
-                          value={newReview.reviewer}
-                          onChange={e => setNewReview({ ...newReview, reviewer: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Email Address</label>
-                        <input
-                          required
-                          type="email"
-                          className="w-full bg-white border-none rounded-2xl px-6 py-4 text-sm focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
-                          placeholder="Your email"
-                          value={newReview.reviewer_email}
-                          onChange={e => setNewReview({ ...newReview, reviewer_email: e.target.value })}
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Your Experience</label>
-                  <textarea
-                    required
-                    rows={4}
-                    className="w-full bg-white border-none rounded-[2rem] px-6 py-5 text-sm focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none resize-none"
-                    placeholder="Share your thoughts about this piece..."
-                    value={newReview.review}
-                    onChange={e => setNewReview({ ...newReview, review: e.target.value })}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={submittingReview}
-                  className="bg-stone-900 text-white px-12 py-5 rounded-full font-bold text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-emerald-900 transition-all flex items-center gap-3 disabled:opacity-50"
-                >
-                  {submittingReview ? 'Sending...' : 'Post Review'}
-                  <Send size={14} />
-                </button>
-              </form>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Reviews List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {loadingReviews ? (
-            <div className="col-span-2 py-12 text-center text-stone-400 italic">Loading reviews...</div>
-          ) : reviews.length === 0 ? (
-            <div className="col-span-2 py-12 text-center text-stone-400 italic">No reviews yet for this piece.</div>
-          ) : (
-            reviews.map((review) => (
-              <motion.div
-                key={review.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="bg-stone-50 rounded-[2.5rem] p-8 md:p-10"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-stone-200 flex items-center justify-center font-bold text-stone-500">
-                      {review.reviewer.charAt(0)}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-stone-900">{review.reviewer}</h4>
-                      <div className="flex text-amber-400 mt-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} size={10} fill={i < review.rating ? "currentColor" : "none"} className={i < review.rating ? "" : "text-stone-200"} />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">{new Date(review.dateCreated).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                </div>
-                <p className="text-stone-600 leading-relaxed font-light">{review.review}</p>
-                {review.verified && (
-                  <div className="mt-6 flex items-center gap-2 text-[9px] font-bold text-emerald-600 uppercase tracking-widest">
-                    <Check size={12} />
-                    Verified Purchase
-                  </div>
-                )}
-              </motion.div>
-            ))
-          )}
-        </div>
-      </section>
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (
