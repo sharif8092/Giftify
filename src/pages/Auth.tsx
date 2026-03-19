@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { LogIn, Mail, Lock, User, ArrowRight, Loader2, Phone, ShieldCheck, KeyRound, CheckCircle2, Sparkles } from 'lucide-react';
 
 const Auth: React.FC = () => {
-  const { profile, loading: authLoading, login, signup } = useAuth();
+  const { profile, loading: authLoading, login, signup, loginAsDemo } = useAuth();
   const [searchParams] = useSearchParams();
   const redirect = searchParams.get('redirect') || '/profile';
   const navigate = useNavigate();
@@ -35,6 +35,11 @@ const Auth: React.FC = () => {
     }, 2000);
   };
 
+  const handleDemoLogin = () => {
+    loginAsDemo();
+    handleAuthSuccess();
+  };
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -54,11 +59,6 @@ const Auth: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleMockAdminSignIn = () => {
-    localStorage.setItem('auth_bypass', 'admin');
-    handleAuthSuccess();
   };
 
   const SuccessOverlay = () => (
@@ -200,7 +200,18 @@ const Auth: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              <label className="block text-[10px] uppercase tracking-widest font-bold text-stone-400">Password</label>
+              <div className="flex items-center justify-between">
+                <label className="block text-[10px] uppercase tracking-widest font-bold text-stone-400">Password</label>
+                {authMode === 'login' && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/forgot-password')}
+                    className="text-[10px] uppercase tracking-widest font-bold text-emerald-800 hover:text-emerald-900 transition-colors"
+                  >
+                    Forgot Password?
+                  </button>
+                )}
+              </div>
               <div className="relative">
                 <Lock className="absolute left-0 top-1/2 -translate-y-1/2 text-stone-300" size={16} />
                 <input
@@ -232,6 +243,7 @@ const Auth: React.FC = () => {
               {loading ? <Loader2 className="animate-spin" size={16} /> : <ArrowRight size={16} />}
               <span>{authMode === 'login' ? 'Sign In' : 'Sign Up'}</span>
             </button>
+
           </form>
 
           <div className="mt-12 space-y-8">
@@ -239,17 +251,7 @@ const Auth: React.FC = () => {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-stone-100"></div>
               </div>
-              <span className="relative bg-[#FCFAF7] px-6 text-[9px] uppercase tracking-widest text-stone-300 font-bold">Or continue with</span>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              <button
-                onClick={handleMockAdminSignIn}
-                className="flex items-center justify-center space-x-3 bg-white border border-stone-100 py-4 rounded-2xl hover:bg-emerald-50 hover:border-emerald-100 transition-all group"
-              >
-                <LogIn size={14} className="text-stone-400 group-hover:text-emerald-600" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-stone-600 group-hover:text-emerald-800">Bypass</span>
-              </button>
+              <span className="relative bg-[#FCFAF7] px-6 text-[9px] uppercase tracking-widest text-stone-300 font-bold">Authentication</span>
             </div>
 
             <p className="text-center text-[10px] font-bold uppercase tracking-widest text-stone-400">

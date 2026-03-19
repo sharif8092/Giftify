@@ -37,11 +37,12 @@ export const storageService = {
 
     /**
      * Delete a file from WordPress Media Library by its URL
-     * Note: This is less efficient in WP than in Firebase because 
-     * we usually delete by ID. We'll try to find the ID first.
+     * Note: This is managed via the standard WooCommerce Media API.
      * @param url The full URL of the file
      */
     async deleteFile(url: string): Promise<void> {
+        // WordPress media upload requires raw file data.
+        // Direct URL upload is not supported by the standard WP REST API.
         try {
             // Find media by URL first to get ID
             const filename = url.split('/').pop()?.split('?')[0];

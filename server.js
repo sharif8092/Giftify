@@ -129,6 +129,28 @@ app.post('/api/woo/orders', async (req, res) => {
     }
 });
 
+// GET customers (for searching existing ones)
+app.get('/api/woo/customers', async (req, res) => {
+    try {
+        const response = await wooClient.get('/customers', { params: req.query });
+        res.json(response.data);
+    } catch (error) {
+        console.error('WooCommerce API Error (Customers GET):', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Failed to fetch customer' });
+    }
+});
+
+app.post('/api/woo/customers', async (req, res) => {
+    try {
+        const response = await wooClient.post('/customers', req.body);
+        res.status(201).json(response.data);
+    } catch (error) {
+        console.error('WooCommerce API Error (Customers):', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Failed to create customer' });
+    }
+});
+
+
 app.get('/api/woo/orders/:id/invoice', async (req, res) => {
     try {
         console.log(`Fetching PDF Invoice for Order #${req.params.id}`);
@@ -172,10 +194,62 @@ app.get('/api/woo/wp/*', async (req, res) => {
         const response = await wpClient.get(`/${subPath}`, { params: req.query });
         res.json(response.data);
     } catch (error) {
-        console.error(`WordPress API Error (${subPath}):`, error.response?.data || error.message);
+        console.error(`WordPress API Error (GET ${subPath}):`, error.response?.data || error.message);
         res.status(error.response?.status || 500).json(error.response?.data || { error: 'Failed to fetch WP data' });
     }
 });
+
+app.post('/api/woo/wp/*', async (req, res) => {
+    const subPath = req.params[0];
+    console.log(`Posting WP data: /wp-json/wp/v2/${subPath}`);
+    try {
+        const response = await wpClient.post(`/${subPath}`, req.body, { params: req.query });
+        res.json(response.data);
+    } catch (error) {
+        console.error(`WordPress API Error (POST ${subPath}):`, error.response?.data || error.message);
+        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Failed to post WP data' });
+    }
+});
+
+// WordPress Password Reset Proxy
+app.post('/api/woo/wp/users/lost-password', async (req, res) => {
+    try {
+        const response = await wpClient.post('/users/lost-password', req.body);
+        res.json(response.data);
+    } catch (error) {
+        console.error('WordPress API Error (Lost Password):', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Failed to trigger password reset' });
+    }
+});
+
+app.post('/api/woo/wp/users/reset-password', async (req, res) => {
+    try {
+        const response = await wpClient.post('/users/reset-password', req.body);
+        res.json(response.data);
+    } catch (error) {
+        console.error('WordPress API Error (Reset Password):', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Failed to reset password' });
+    }
+});
+
+// JWT Auth Proxy (Special case outside /wp/v2)
+app.post('/api/woo/jwt-auth/*', async (req, res) => {
+    const subPath = req.params[0];
+    try {
+        const response = await axios.post(`${WC_URL}/wp-json/jwt-auth/${subPath}`, req.body);
+        res.json(response.data);
+    } catch (error) {
+        console.error(`JWT Auth Error (${subPath}):`, error.response?.data || error.message);
+        if (error.response?.status === 404) {
+            return res.status(404).json({ 
+                error: 'JWT Authentication Not Configured', 
+                message: 'The JWT Authentication plugin is missing or not active on the WordPress backend.' 
+            });
+        }
+        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Authentication failed' });
+    }
+});
+
 
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, 'dist')));

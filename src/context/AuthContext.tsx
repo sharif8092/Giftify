@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { UserProfile } from '../types';
 import { orderService } from '../services/orderService';
-import { wpService } from '../services/wooCommerceService';
+import wooCommerceService, { wpService } from '../services/wooCommerceService';
 
 interface AuthContextType {
   user: any | null;
@@ -12,6 +12,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, displayName: string) => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (email: string, token: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -25,8 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const baseUrl = (import.meta as any).env.VITE_WC_URL;
-      const response = await axios.post(`${baseUrl}/wp-json/jwt-auth/v1/token`, {
+      const response = await axios.post('/api/woo/jwt-auth/v1/token', {
         username: email,
         password: password
       });
@@ -39,6 +40,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await fetchProfile(token, user_email);
     } catch (err: any) {
       console.error("WooCommerce Login Error:", err);
+      if (err.response?.status === 404 || err.message?.includes('404')) {
+        throw new Error("LOGIN SERVICE (JWT) IS NOT CONFIGURED ON THE SERVER. PLEASE ENSURE THE 'JWT AUTHENTICATION' PLUGIN IS ACTIVE ON YOUR WORDPRESS SITE.");
+      }
       throw new Error(err.response?.data?.message || "Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
@@ -54,40 +58,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
 
-      // 1. Create WooCommerce customer
-      const createResponse = await orderService.getOrCreateCustomer({
-        email,
-        first_name: firstName,
-        last_name: lastName
-      });
-
-      if (!createResponse) {
-        throw new Error("Failed to create customer account.");
-      }
-
-      // Note: standard WC REST API doesn't set password for JWT unless configured,
-      // but in this setup, the getOrCreateCustomer uses the admin key to create the account.
-      // We need to ensure the password is set correctly during creation.
-      // Let's modify orderService.getOrCreateCustomer to support password or add a dedicated create function.
-      
-      // For now, let's assume the user already exists or use a dedicated creation call here
-      // since getOrCreateCustomer is meant for background sync.
-      
-      const wooUrl = (import.meta as any).env.VITE_WC_URL;
-      const ck = (import.meta as any).env.VITE_WC_CONSUMER_KEY;
-      const cs = (import.meta as any).env.VITE_WC_CONSUMER_SECRET;
-
-      await axios.post(`${wooUrl}/wp-json/wc/v3/customers`, {
+      await wooCommerceService.post('/customers', {
         email,
         password,
         first_name: firstName,
         last_name: lastName,
-        username: email.split('@')[0] // Use email prefix as username
-      }, {
-        params: {
-          consumer_key: ck,
-          consumer_secret: cs
-        }
+        username: email // Use full email as username to avoid collisions
       });
 
       // 2. Automatically login after successful signup
@@ -132,6 +108,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const forgotPassword = async (email: string) => {
+    try {
+      setLoading(true);
+      await wpService.post('/users/lost-password', { user_login: email });
+    } catch (err: any) {
+      console.error("Forgot Password Error:", err);
+      throw new Error(err.response?.data?.message || "Failed to send reset email. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (email: string, token: string, newPassword: string) => {
+    try {
+      setLoading(true);
+      await wpService.post('/users/reset-password', {
+        user_login: email,
+        reset_key: token,
+        new_password: newPassword
+      });
+    } catch (err: any) {
+      console.error("Reset Password Error:", err);
+      throw new Error(err.response?.data?.message || "Failed to reset password. The link might be expired.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateProfile = async (data: Partial<UserProfile>) => {
     // Basic local update, real update would need WP API call
     setProfile(prev => prev ? { ...prev, ...data } : null);
@@ -139,7 +143,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     localStorage.removeItem('wc_jwt_token');
-    localStorage.removeItem('auth_bypass');
     setUser(null);
     setProfile(null);
   };
@@ -147,13 +150,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('wc_jwt_token');
-      const bypass = localStorage.getItem('auth_bypass');
       
       if (token) {
         try {
-          const baseUrl = (import.meta as any).env.VITE_WC_URL;
           // Validate token and fetch profile
-          const validateResponse = await axios.post(`${baseUrl}/wp-json/jwt-auth/v1/token/validate`, {}, {
+          const validateResponse = await axios.post('/api/woo/jwt-auth/v1/token/validate', {}, {
             headers: { Authorization: `Bearer ${token}` }
           });
           
@@ -168,13 +169,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error("Token Validation Error:", err);
           localStorage.removeItem('wc_jwt_token');
         }
-      } else if (bypass === 'admin' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-        setProfile({
-          uid: 'mock-admin-id',
-          email: 'admin@local.dev',
-          displayName: 'Local Admin (Bypass)',
-          role: 'admin'
-        } as UserProfile);
       }
       
       setLoading(false);
@@ -186,7 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAdmin = profile?.role === 'admin' || profile?.email === 'sharifkmrn@gmail.com';
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAdmin, login, signup, updateProfile, logout }}>
+    <AuthContext.Provider value={{ user, profile, loading, isAdmin, login, signup, updateProfile, forgotPassword, resetPassword, logout }}>
       {children}
     </AuthContext.Provider>
   );

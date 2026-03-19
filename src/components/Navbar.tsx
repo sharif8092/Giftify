@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, User, Menu, X, Search, LogOut, ShoppingBag, Heart, ArrowRight, ShieldCheck } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, Search, LogOut, ShoppingBag, Heart, ArrowRight, ShieldCheck, Mail, Phone, MapPin } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,49 @@ import { productService } from '../services/productService';
 import { Product } from '../types';
 import { useQuotation } from '../hooks/useQuotation';
 import QuotationForm from '../components/QuotationForm';
+
+const TopBar: React.FC = () => (
+  <div className="hidden sm:block bg-stone-900 border-b border-white/5 overflow-hidden">
+    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12">
+      <div className="h-7 sm:h-8 flex items-center justify-between text-[9px] sm:text-[10px] uppercase tracking-[0.2em] font-bold text-stone-400">
+        <div className="flex items-center gap-6">
+          <div className="hidden sm:flex items-center gap-2 hover:text-white transition-colors">
+            <Phone size={12} className="text-emerald-500" />
+            <a href="tel:+917909096738">+91 79090 96738</a>
+          </div>
+          <div className="hidden md:flex items-center gap-2 hover:text-white transition-colors">
+            <Mail size={12} className="text-emerald-500" />
+            <a href="mailto:support@corporategifting.store">support@corporategifting.store</a>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <motion.div
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="flex items-center gap-2"
+          >
+            <div className="w-1 h-1 bg-emerald-500 rounded-full" />
+            <span className="text-emerald-500 hidden sm:inline">Premium Quality Assurance</span>
+            <span className="text-stone-300">Excellence in Corporate Gifting</span>
+          </motion.div>
+        </div>
+
+        <div className="flex items-center gap-4 sm:gap-6">
+          <div className="hidden lg:flex items-center gap-6">
+            <span className="hover:text-white cursor-help">PAN India Delivery</span>
+            <span className="text-stone-700">|</span>
+            <Link to="/bulk-orders" className="hover:text-white transition-colors">Bulk Pricing Available</Link>
+          </div>
+          <div className="lg:hidden flex items-center gap-3">
+            <a href="tel:+917909096738" className="text-emerald-500"><Phone size={14} /></a>
+            <a href="mailto:support@corporategifting.store" className="text-stone-300"><Mail size={14} /></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 const Navbar: React.FC = () => {
   const { itemCount, items } = useCart();
@@ -73,6 +116,7 @@ const Navbar: React.FC = () => {
   return (
     <>
       <nav className="sticky top-0 z-50">
+        <TopBar />
         {/* Main Header: Logo | Nav Links | Icons */}
         <div className="bg-white border-b border-stone-200/60">
           <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12">
@@ -80,108 +124,108 @@ const Navbar: React.FC = () => {
 
               <div className="flex-1 flex items-center">
                 <Link to="/" className="flex-shrink-0 group flex items-center gap-3">
-                  <img src="/logo.png" alt="Urban Shark Logo" className="h-8 lg:h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105" />
+                  <img src="/logo.png" alt="Urban Shark Logo" className="hidden sm:block h-8 lg:h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105" />
                   <span className="text-2xl lg:text-[28px] font-serif italic text-stone-900 tracking-tight group-hover:text-emerald-800 transition-colors duration-300">Urban Shark</span>
                 </Link>
               </div>
 
-                <div className="hidden lg:flex items-center justify-center gap-0.5 xl:gap-1 flex-grow">
-                  {/* All Gifts Dropdown */}
-                  <div className="group relative">
-                    <button className="relative px-2 xl:px-3 py-2 text-[10px] xl:text-[11px] uppercase tracking-[0.1em] font-semibold text-stone-500 hover:text-stone-900 transition-colors duration-200 whitespace-nowrap flex items-center gap-1">
-                      All Gifts
-                      <ArrowRight size={10} className="rotate-90 opacity-40" />
-                      <span className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-emerald-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-                    </button>
-                    <div className="absolute top-full left-0 w-64 bg-white border border-stone-100 shadow-2xl rounded-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-2 group-hover:translate-y-0 z-[60]">
-                      <div className="space-y-1">
-                        {[
-                          { label: 'All Products', to: '/products' },
-                          { label: 'Tech Gifts', to: '/products?category=Tech' },
-                          { label: 'Bags', to: '/products?category=Bags' },
-                          { label: 'Drinkware', to: '/products?category=Drinkware' },
-                          { label: 'Office Supplies', to: '/products?category=Office' },
-                          { label: 'Gift Hampers', to: '/products?category=Hampers' },
-                          { label: 'Eco Friendly Gifts', to: '/products?category=Eco' },
-                        ].map(sub => (
-                          <Link key={sub.label} to={sub.to} className="block px-4 py-2 text-[10px] uppercase tracking-widest font-bold text-stone-500 hover:text-emerald-800 hover:bg-emerald-50 rounded-xl transition-all">
-                            {sub.label}
-                          </Link>
-                        ))}
-                      </div>
+              <div className="hidden lg:flex items-center justify-center gap-0.5 xl:gap-1 flex-grow">
+                {/* All Gifts Dropdown */}
+                <div className="group relative">
+                  <button className="relative px-2 xl:px-3 py-2 text-[10px] xl:text-[11px] uppercase tracking-[0.1em] font-semibold text-stone-500 hover:text-stone-900 transition-colors duration-200 whitespace-nowrap flex items-center gap-1">
+                    All Gifts
+                    <ArrowRight size={10} className="rotate-90 opacity-40" />
+                    <span className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-emerald-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                  </button>
+                  <div className="absolute top-full left-0 w-64 bg-white border border-stone-100 shadow-2xl rounded-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-2 group-hover:translate-y-0 z-[60]">
+                    <div className="space-y-1">
+                      {[
+                        { label: 'All Products', to: '/products' },
+                        { label: 'Tech Gifts', to: '/products?category=Tech' },
+                        { label: 'Bags', to: '/products?category=Bags' },
+                        { label: 'Drinkware', to: '/products?category=Drinkware' },
+                        { label: 'Office Supplies', to: '/products?category=Office' },
+                        { label: 'Gift Hampers', to: '/products?category=Hampers' },
+                        { label: 'Eco Friendly Gifts', to: '/products?category=Eco' },
+                      ].map(sub => (
+                        <Link key={sub.label} to={sub.to} className="block px-4 py-2 text-[10px] uppercase tracking-widest font-bold text-stone-500 hover:text-emerald-800 hover:bg-emerald-50 rounded-xl transition-all">
+                          {sub.label}
+                        </Link>
+                      ))}
                     </div>
                   </div>
-
-                  {/* Corporate Gifting Dropdown */}
-                  <div className="group relative">
-                    <button className="relative px-2 xl:px-3 py-2 text-[10px] xl:text-[11px] uppercase tracking-[0.1em] font-semibold text-stone-500 hover:text-stone-900 transition-colors duration-200 whitespace-nowrap flex items-center gap-1">
-                      Corporate
-                      <ArrowRight size={10} className="rotate-90 opacity-40" />
-                      <span className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-emerald-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-                    </button>
-                    <div className="absolute top-full left-0 w-64 bg-white border border-stone-100 shadow-2xl rounded-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-2 group-hover:translate-y-0 z-[60]">
-                      <div className="space-y-1">
-                        {[
-                          { label: 'Overview', to: '/#corporate-services' },
-                          { label: 'Bags', to: '/products?category=Bags' },
-                          { label: 'Tech', to: '/products?category=Tech' },
-                          { label: 'Drinkware', to: '/products?category=Drinkware' },
-                          { label: 'Apparel', to: '/products?category=Apparel' },
-                          { label: 'Office Gifts', to: '/products?category=Office' },
-                        ].map(sub => (
-                          <Link key={sub.label} to={sub.to} className="block px-4 py-2 text-[10px] uppercase tracking-widest font-bold text-stone-500 hover:text-emerald-800 hover:bg-emerald-50 rounded-xl transition-all">
-                            {sub.label}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Link to="/products?category=Events" className="relative px-2 xl:px-3 py-2 text-[10px] xl:text-[11px] uppercase tracking-[0.1em] font-semibold text-stone-500 hover:text-stone-900 transition-colors duration-200 whitespace-nowrap group flex flex-col items-center">
-                    Events
-                    <span className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-emerald-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-                  </Link>
-
-                  <Link to="/bulk-orders" className="relative px-2 xl:px-3 py-2 text-[10px] xl:text-[11px] uppercase tracking-[0.1em] font-semibold text-stone-500 hover:text-stone-900 transition-colors duration-200 whitespace-nowrap group flex flex-col items-center">
-                    Bulk
-                    <span className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-emerald-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-                  </Link>
-
-                  <Link to="/custom-branding" className="relative px-2 xl:px-3 py-2 text-[10px] xl:text-[11px] uppercase tracking-[0.1em] font-semibold text-stone-500 hover:text-stone-900 transition-colors duration-200 whitespace-nowrap group flex flex-col items-center">
-                    Branding
-                    <span className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-emerald-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-                  </Link>
-
-                  {/* Industry Solutions Dropdown */}
-                  <div className="group relative">
-                    <button className="relative px-2 xl:px-3 py-2 text-[10px] xl:text-[11px] uppercase tracking-[0.1em] font-semibold text-stone-500 hover:text-stone-900 transition-colors duration-200 whitespace-nowrap flex items-center gap-1">
-                      Solutions
-                      <ArrowRight size={10} className="rotate-90 opacity-40" />
-                      <span className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-emerald-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-                    </button>
-                    <div className="absolute top-full left-0 w-72 bg-white border border-stone-100 shadow-2xl rounded-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-2 group-hover:translate-y-0 z-[60]">
-                      <div className="space-y-1">
-                        {[
-                          { label: 'Employee Welcome Kits', to: '/products?category=Welcome' },
-                          { label: 'Conference Gifts', to: '/products?category=Conference' },
-                          { label: 'Promotional Merchandise', to: '/products?category=Promo' },
-                          { label: 'Festival Gifts', to: '/products?category=Festival' },
-                        ].map(sub => (
-                          <Link key={sub.label} to={sub.to} className="block px-4 py-2 text-[10px] uppercase tracking-widest font-bold text-stone-500 hover:text-emerald-800 hover:bg-emerald-50 rounded-xl transition-all">
-                            {sub.label}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Link
-                    to="/new-arrivals"
-                    className="px-2 xl:px-4 py-1.5 ml-1 xl:ml-2 text-[10px] xl:text-[11px] uppercase tracking-[0.1em] font-bold text-emerald-700 hover:text-emerald-900 transition-colors duration-200 whitespace-nowrap border border-emerald-100 rounded-full bg-emerald-50/50"
-                  >
-                    New
-                  </Link>
                 </div>
+
+                {/* Corporate Gifting Dropdown */}
+                <div className="group relative">
+                  <button className="relative px-2 xl:px-3 py-2 text-[10px] xl:text-[11px] uppercase tracking-[0.1em] font-semibold text-stone-500 hover:text-stone-900 transition-colors duration-200 whitespace-nowrap flex items-center gap-1">
+                    Corporate
+                    <ArrowRight size={10} className="rotate-90 opacity-40" />
+                    <span className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-emerald-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                  </button>
+                  <div className="absolute top-full left-0 w-64 bg-white border border-stone-100 shadow-2xl rounded-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-2 group-hover:translate-y-0 z-[60]">
+                    <div className="space-y-1">
+                      {[
+                        { label: 'Overview', to: '/#corporate-services' },
+                        { label: 'Bags', to: '/products?category=Bags' },
+                        { label: 'Tech', to: '/products?category=Tech' },
+                        { label: 'Drinkware', to: '/products?category=Drinkware' },
+                        { label: 'Apparel', to: '/products?category=Apparel' },
+                        { label: 'Office Gifts', to: '/products?category=Office' },
+                      ].map(sub => (
+                        <Link key={sub.label} to={sub.to} className="block px-4 py-2 text-[10px] uppercase tracking-widest font-bold text-stone-500 hover:text-emerald-800 hover:bg-emerald-50 rounded-xl transition-all">
+                          {sub.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <Link to="/products?category=Events" className="relative px-2 xl:px-3 py-2 text-[10px] xl:text-[11px] uppercase tracking-[0.1em] font-semibold text-stone-500 hover:text-stone-900 transition-colors duration-200 whitespace-nowrap group flex flex-col items-center">
+                  Events
+                  <span className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-emerald-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                </Link>
+
+                <Link to="/bulk-orders" className="relative px-2 xl:px-3 py-2 text-[10px] xl:text-[11px] uppercase tracking-[0.1em] font-semibold text-stone-500 hover:text-stone-900 transition-colors duration-200 whitespace-nowrap group flex flex-col items-center">
+                  Bulk
+                  <span className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-emerald-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                </Link>
+
+                <Link to="/custom-branding" className="relative px-2 xl:px-3 py-2 text-[10px] xl:text-[11px] uppercase tracking-[0.1em] font-semibold text-stone-500 hover:text-stone-900 transition-colors duration-200 whitespace-nowrap group flex flex-col items-center">
+                  Branding
+                  <span className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-emerald-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                </Link>
+
+                {/* Industry Solutions Dropdown */}
+                <div className="group relative">
+                  <button className="relative px-2 xl:px-3 py-2 text-[10px] xl:text-[11px] uppercase tracking-[0.1em] font-semibold text-stone-500 hover:text-stone-900 transition-colors duration-200 whitespace-nowrap flex items-center gap-1">
+                    Solutions
+                    <ArrowRight size={10} className="rotate-90 opacity-40" />
+                    <span className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-emerald-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                  </button>
+                  <div className="absolute top-full left-0 w-72 bg-white border border-stone-100 shadow-2xl rounded-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-2 group-hover:translate-y-0 z-[60]">
+                    <div className="space-y-1">
+                      {[
+                        { label: 'Employee Welcome Kits', to: '/products?category=Welcome' },
+                        { label: 'Conference Gifts', to: '/products?category=Conference' },
+                        { label: 'Promotional Merchandise', to: '/products?category=Promo' },
+                        { label: 'Festival Gifts', to: '/products?category=Festival' },
+                      ].map(sub => (
+                        <Link key={sub.label} to={sub.to} className="block px-4 py-2 text-[10px] uppercase tracking-widest font-bold text-stone-500 hover:text-emerald-800 hover:bg-emerald-50 rounded-xl transition-all">
+                          {sub.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <Link
+                  to="/new-arrivals"
+                  className="px-2 xl:px-4 py-1.5 ml-1 xl:ml-2 text-[10px] xl:text-[11px] uppercase tracking-[0.1em] font-bold text-emerald-700 hover:text-emerald-900 transition-colors duration-200 whitespace-nowrap border border-emerald-100 rounded-full bg-emerald-50/50"
+                >
+                  New
+                </Link>
+              </div>
 
               {/* Right: Icons */}
               <div className="flex-1 flex items-center justify-end gap-1 xl:gap-2">
@@ -194,10 +238,6 @@ const Navbar: React.FC = () => {
                   <Search size={18} strokeWidth={1.5} />
                 </button>
 
-                {/* Account */}
-                <Link to={profile ? "/profile" : "/auth"} className={`p-1.5 rounded-full transition-all duration-300 ${profile ? 'bg-emerald-50 ring-1 ring-emerald-100 hover:bg-emerald-100' : 'text-stone-500 hover:text-stone-900 group'}`}>
-                  <User size={18} strokeWidth={profile ? 2 : 1.5} className={profile ? 'text-emerald-700' : 'text-stone-500 group-hover:text-stone-900'} />
-                </Link>
 
                 {/* Cart/Bag */}
                 <Link to="/cart" className="p-2 text-stone-500 hover:text-stone-900 transition-colors duration-200 relative">
@@ -208,7 +248,7 @@ const Navbar: React.FC = () => {
                 </Link>
 
                 {/* Request Quote Button */}
-                <button 
+                <button
                   onClick={() => setIsFormOpen(true)}
                   className="hidden lg:flex items-center gap-2 px-4 xl:px-5 py-2.5 bg-emerald-900 text-white rounded-full text-[9px] xl:text-[10px] uppercase tracking-widest font-bold hover:bg-stone-900 transition-all shadow-lg shadow-emerald-900/20"
                 >
@@ -383,11 +423,11 @@ const Navbar: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
-      <QuotationForm 
+      <QuotationForm
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         items={items}
-        onSuccess={() => {}}
+        onSuccess={() => { }}
       />
     </>
   );

@@ -10,19 +10,9 @@ const Products = React.lazy(() => import('./pages/Products'));
 const Cart = React.lazy(() => import('./pages/Cart'));
 const Wishlist = React.lazy(() => import('./pages/Wishlist'));
 const Checkout = React.lazy(() => import('./pages/Checkout'));
-const Auth = React.lazy(() => import('./pages/Auth'));
-const Orders = React.lazy(() => import('./pages/Orders'));
-const Profile = React.lazy(() => import('./pages/Profile'));
 const NewArrivals = React.lazy(() => import('./pages/NewArrivals'));
 const BulkOrders = React.lazy(() => import('./pages/BulkOrders'));
 const CustomBranding = React.lazy(() => import('./pages/CustomBranding'));
-const AdminDashboard = React.lazy(() => import('./pages/admin/AdminDashboard'));
-const ProductManagement = React.lazy(() => import('./pages/admin/ProductManagement'));
-const OfferManagement = React.lazy(() => import('./pages/admin/OfferManagement'));
-const BlogManagement = React.lazy(() => import('./pages/admin/BlogManagement'));
-const MediaLibrary = React.lazy(() => import('./pages/admin/MediaLibrary'));
-const AdminOrders = React.lazy(() => import('./pages/admin/AdminOrders'));
-const CategoryManagement = React.lazy(() => import('./pages/admin/CategoryManagement'));
 const Blogs = React.lazy(() => import('./pages/Blogs'));
 const BlogDetail = React.lazy(() => import('./pages/BlogDetail'));
 
@@ -49,23 +39,12 @@ export default function App() {
                       <Route path="/cart" element={<Cart />} />
                       <Route path="/wishlist" element={<Wishlist />} />
                       <Route path="/checkout" element={<Checkout />} />
-                      <Route path="/auth" element={<Auth />} />
-                      <Route path="/orders" element={<Orders />} />
-                      <Route path="/profile" element={<Profile />} />
                       <Route path="/blogs" element={<Blogs />} />
                       <Route path="/blog/:id" element={<BlogDetail />} />
                       <Route path="/new-arrivals" element={<NewArrivals />} />
                       <Route path="/bulk-orders" element={<BulkOrders />} />
                       <Route path="/custom-branding" element={<CustomBranding />} />
 
-                      {/* Admin Routes */}
-                      <Route path="/admin" element={<AdminDashboard />} />
-                      <Route path="/admin/products" element={<ProductManagement />} />
-                      <Route path="/admin/categories" element={<CategoryManagement />} />
-                      <Route path="/admin/offers" element={<OfferManagement />} />
-                      <Route path="/admin/blogs" element={<BlogManagement />} />
-                      <Route path="/admin/media" element={<MediaLibrary />} />
-                      <Route path="/admin/orders" element={<AdminOrders />} />
                     </Routes>
                   </React.Suspense>
                 </Layout>

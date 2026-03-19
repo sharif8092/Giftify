@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, Star, ShieldCheck, Truck, Mail, Package, CreditCard, RotateCcw, Quote, Sparkles, ChevronLeft, ChevronRight, Calendar, User as UserIcon } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import { productService } from '../services/productService';
@@ -44,6 +44,19 @@ const Home: React.FC = () => {
   // Hero carousel state
   const [heroSlide, setHeroSlide] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
+  const offerMessages = [
+    { title: 'Corporate Bulk Discounts', sub: 'Premium Quality' },
+    { title: 'Exclusive B2B Pricing', sub: 'GST Invoicing' },
+    { title: 'On Orders Above 1000 Units', sub: 'PAN India Delivery' }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentOfferIndex(prev => (prev + 1) % offerMessages.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const fetchHomeData = async () => {
@@ -115,18 +128,30 @@ const Home: React.FC = () => {
       {/* ═══ PROMOTIONAL BANNER STRIP ═══ */}
       <section className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-700 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23fff\' fill-opacity=\'1\'%3E%3Ccircle cx=\'10\' cy=\'10\' r=\'1\'/%3E%3C/g%3E%3C/svg%3E")' }} />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 relative z-10">
-          <h3 className="text-white font-extrabold text-lg sm:text-2xl md:text-3xl uppercase tracking-wide" style={{ fontStyle: 'italic' }}>
-            {activeOffer ? activeOffer.title : 'Corporate Bulk Discounts'}
-          </h3>
-          <div className="flex items-center gap-3 sm:gap-5">
-            <span className="bg-amber-400 text-emerald-900 text-[8px] sm:text-[9px] uppercase tracking-widest font-extrabold px-3 py-1 rounded-full">
-              {activeOffer ? 'Limited Offer' : 'Exclusive B2B Pricing'}
-            </span>
-            <h3 className="text-white font-extrabold text-lg sm:text-2xl md:text-3xl uppercase tracking-wide" style={{ fontStyle: 'italic' }}>
-              {activeOffer ? activeOffer.description : 'On Orders Above 25 Units'}
-            </h3>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 h-12 md:h-14 flex items-center justify-center relative z-10">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentOfferIndex}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 w-full"
+            >
+              <h3 className="text-white font-extrabold text-sm sm:text-xl md:text-2xl uppercase tracking-wider text-center" style={{ fontStyle: 'italic' }}>
+                {offerMessages[currentOfferIndex].title}
+              </h3>
+              <div className="flex items-center gap-3 sm:gap-5">
+                <span className="bg-amber-400 text-emerald-900 text-[8px] sm:text-[9px] uppercase tracking-widest font-extrabold px-3 py-0.5 rounded-full whitespace-nowrap">
+                  {offerMessages[currentOfferIndex].sub}
+                </span>
+                <span className="hidden sm:block text-white/40 font-light">|</span>
+                <Link to="/products" className="text-white/80 hover:text-white text-[9px] sm:text-[10px] uppercase tracking-[0.2em] font-bold transition-colors">
+                  Shop Collection →
+                </Link>
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
       </section>
 

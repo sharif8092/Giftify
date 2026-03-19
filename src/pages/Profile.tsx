@@ -98,36 +98,6 @@ const Profile: React.FC = () => {
               </div>
             </div>
 
-            {/* Admin Management Section */}
-            {isAdmin && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="bg-emerald-900 rounded-[3rem] p-10 text-white shadow-2xl shadow-emerald-900/20"
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md">
-                    <ShieldCheck size={28} className="text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-serif italic">Admin Panel</h3>
-                    <p className="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">Full Store Control</p>
-                  </div>
-                </div>
-                <p className="text-sm text-emerald-100/70 mb-8 font-light leading-relaxed">
-                  Manage products, view analytics, update blog posts, and control active offers.
-                </p>
-                <button
-                  onClick={() => navigate('/admin')}
-                  className="group flex items-center justify-between w-full bg-white text-emerald-900 px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-50 transition-all mb-4"
-                >
-                  Manage Store
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-              </motion.div>
-            )}
-
             <button
               onClick={async () => {
                 await logout();

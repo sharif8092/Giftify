@@ -38,9 +38,8 @@ export const mediaService = {
      * Note: This usually requires a multi-part form upload
      */
     async addMedia(file: Omit<MediaFile, 'id'>): Promise<string> {
-        // In a real WP setup, we'd use a multi-part upload
-        // For now, since FileUpload gives us a URL (Firebase),
-        // we can't easily "add" to WP without the raw buffer.
+        // WordPress media upload requires raw file data.
+        // Direct URL upload is not supported by the standard WP REST API.
         // We'll return a dummy ID or implement if we have the file data.
         console.warn('WordPress media upload requires raw file data. URL upload not supported directly.');
         return 'new-wp-media';
