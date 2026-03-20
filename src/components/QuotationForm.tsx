@@ -4,6 +4,8 @@ import { X, Send, CheckCircle2, Building2, User, Mail, Phone, MessageSquare, Cal
 import { quotationService, QuotationData } from '../services/quotationService';
 import { CartItem } from '../types';
 
+import { useCart } from '../context/CartContext';
+
 interface QuotationFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -12,6 +14,7 @@ interface QuotationFormProps {
 }
 
 const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, items, onSuccess }) => {
+  const { subtotal, gstTotal, total } = useCart();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({
@@ -70,6 +73,12 @@ const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, items, o
         items.forEach(item => {
           message += `- ${item.name} (Qty: ${item.quantity})\n`;
         });
+        
+        message += `\n*Quotation Estimate:*\n`;
+        message += `- Subtotal: ₹${subtotal.toLocaleString()}\n`;
+        message += `- GST (Est.): ₹${gstTotal.toLocaleString()}\n`;
+        message += `- total Estimate: ₹${total.toLocaleString()}\n`;
+
         if (formData.message) {
           message += `\n*Special Requirements:* ${formData.message}`;
         }

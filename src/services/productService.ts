@@ -1,6 +1,6 @@
 import wooCommerceService from './wooCommerceService';
 import { Product } from '../types';
-import { normalizeCategory } from '../utils/formatUtils';
+import { decodeHtml, normalizeCategory } from '../utils/formatUtils';
 
 const mapWooProductToInternal = (wooProduct: any): Product => {
     if (!wooProduct) {
@@ -14,7 +14,7 @@ const mapWooProductToInternal = (wooProduct: any): Product => {
         price: parseFloat(wooProduct.price) || 0,
         originalPrice: wooProduct.regular_price ? parseFloat(wooProduct.regular_price) : undefined,
         categories: (wooProduct.categories && Array.isArray(wooProduct.categories) && wooProduct.categories.length > 0)
-            ? wooProduct.categories.map((c: any) => c.name)
+            ? wooProduct.categories.map((c: any) => decodeHtml(c.name))
             : ['Collection'],
         images: (wooProduct.images && Array.isArray(wooProduct.images)) 
             ? wooProduct.images.map((img: any) => img.src) 

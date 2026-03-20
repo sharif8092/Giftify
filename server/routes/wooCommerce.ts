@@ -10,6 +10,27 @@ const WC_URL = process.env.WC_URL;
 const CONSUMER_KEY = process.env.WC_CONSUMER_KEY;
 const CONSUMER_SECRET = process.env.WC_CONSUMER_SECRET;
 
+// Global Business Logic / Configuration
+const GLOBAL_CONFIG = {
+    bulk_pricing_tiers: [
+        { min_qty: 1, discount: 0, label: 'Standard' },
+        { min_qty: 25, discount: 10, label: 'Bronze' },
+        { min_qty: 50, discount: 15, label: 'Silver' },
+        { min_qty: 100, discount: 20, label: 'Gold' },
+        { min_qty: 500, discount: 25, label: 'Platinum' }
+    ],
+    branding_options: [
+        { name: 'None', price: 0 },
+        { name: 'Screen Printing', price: 45 },
+        { name: 'Laser Engraving', price: 65 },
+        { name: 'Digital UV', price: 85 },
+        { name: 'Embroidery', price: 120 }
+    ],
+    moq_default: 25,
+    lead_time_default: '7-10 Working Days',
+    sample_price_multiplier: 3
+};
+
 const wooCommerceClient = axios.create({
     baseURL: `${WC_URL}/wp-json/wc/v3`,
     params: {
@@ -39,6 +60,17 @@ router.get('/products', async (req, res) => {
     }
 });
 
+// GET single product
+router.get('/products/:id', async (req, res) => {
+    try {
+        const response = await wooCommerceClient.get(`/products/${req.params.id}`, { params: req.query });
+        res.json(response.data);
+    } catch (error: any) {
+        console.error(`WooCommerce API Error (Product ${req.params.id}):`, error.response?.data || error.message);
+        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Failed to fetch product' });
+    }
+});
+
 // GET categories
 router.get('/products/categories', async (req, res) => {
     try {
@@ -50,6 +82,22 @@ router.get('/products/categories', async (req, res) => {
         console.error('Error fetching categories:', error.response?.data || error.message);
         res.status(error.response?.status || 500).json(error.response?.data || { message: 'Internal Server Error' });
     }
+});
+
+// GET coupons
+router.get('/coupons', async (req, res) => {
+    try {
+        const response = await wooCommerceClient.get('/coupons', { params: req.query });
+        res.json(response.data);
+    } catch (error: any) {
+        console.error('WooCommerce API Error (Coupons):', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Failed to fetch coupons' });
+    }
+});
+
+// GET config
+router.get('/config', (req, res) => {
+    res.json(GLOBAL_CONFIG);
 });
 
 // GET customers (for tracking existing ones)
@@ -139,6 +187,33 @@ router.post('/jwt-auth/*', async (req, res) => {
     } catch (error: any) {
         console.error(`JWT Auth Error (${subPath}):`, error.response?.data || error.message);
         res.status(error.response?.status || 500).json(error.response?.data || { message: 'Authentication failed' });
+    }
+});
+
+// GET order invoice PDF
+router.get('/orders/:id/invoice', async (req, res) => {
+    try {
+        console.log(`Fetching PDF Invoice for Order #${req.params.id}`);
+        // The REST API endpoint for WooCommerce PDF Invoices & Packing Slips
+        const response = await wooCommerceClient.get(`/../../wpo/v1/pdf/invoice/${req.params.id}`, {
+            responseType: 'arraybuffer',
+            params: {
+                ...wooCommerceClient.defaults.params,
+            }
+        });
+
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="invoice-${req.params.id}.pdf"`,
+            'Content-Length': (response.data as any).length
+        });
+
+        res.send(response.data);
+    } catch (error: any) {
+        console.error(`Error fetching invoice for order ${req.params.id}:`, error.response?.data?.toString() || error.message);
+        const status = error.response?.status || 500;
+        const errorMessage = error.response?.data?.toString() || 'Failed to generate PDF invoice. Please ensure the "WooCommerce PDF Invoices & Packing Slips" plugin is active and its REST API is accessible.';
+        res.status(status).json({ error: 'Invoice Generation Failed', details: errorMessage });
     }
 });
 

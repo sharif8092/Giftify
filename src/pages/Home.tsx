@@ -9,6 +9,7 @@ import { blogService } from '../services/blogService';
 import { categoryService, Category } from '../services/categoryService';
 import { Product, Offer, BlogPost } from '../types';
 import SEO from '../components/SEO';
+import { decodeHtml } from '../utils/formatUtils';
 
 const DEFAULT_HERO_SLIDES = [
   {
@@ -115,11 +116,24 @@ const Home: React.FC = () => {
       .slice(0, 4)
     , [products]);
 
+  const filteredProducts = useMemo(() => {
+    if (selectedCategory === 'All') return products;
+    return products.filter(p => 
+      p.categories.some(cat => cat.toLowerCase() === selectedCategory.toLowerCase())
+    );
+  }, [products, selectedCategory]);
+
+  const handleCategoryChange = (category: string) => {
+    setLoading(true);
+    setSelectedCategory(category);
+    setTimeout(() => setLoading(false), 300);
+  };
+
   // Hero carousel state
 
   return (
     <div className="pb-24">
-      <SEO 
+      <SEO
         title="Premium Corporate Gifting Solutions in India"
         description="Urban Shark is India's premium corporate gifting partner. We specialize in bespoke business gifts, custom branded merchandise, and bulk gifting solutions for events and employees. Pan-India delivery with GST compliance."
         keywords="Corporate Gifting India, Bulk Business Gifts, Professional Gifting Solutions, Custom Branded Gifts, Employee Welcome Kits, Executive Gifts, B2B Gifting"
@@ -161,50 +175,50 @@ const Home: React.FC = () => {
         {DEFAULT_HERO_SLIDES.map((slide, i) => (
           <motion.div
             key={i}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: heroSlide === i ? 1 : 0 }}
-              transition={{ duration: 0.8 }}
-              className="absolute inset-0"
-              style={{ pointerEvents: heroSlide === i ? 'auto' : 'none' }}
-            >
-              <img
-                src={slide.image}
-                alt={slide.title}
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-                fetchPriority={i === 0 ? "high" : "auto"}
-                loading={i === 0 ? "eager" : "lazy"}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+            initial={{ opacity: 0 }}
+            animate={{ opacity: heroSlide === i ? 1 : 0 }}
+            transition={{ duration: 0.8 }}
+            className="absolute inset-0"
+            style={{ pointerEvents: heroSlide === i ? 'auto' : 'none' }}
+          >
+            <img
+              src={slide.image}
+              alt={slide.title}
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+              fetchPriority={i === 0 ? "high" : "auto"}
+              loading={i === 0 ? "eager" : "lazy"}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
-              {/* Bottom-left text overlay */}
-              <div className="absolute bottom-10 sm:bottom-16 md:bottom-20 left-4 sm:left-8 md:left-16 max-w-lg z-10">
-                <motion.div
-                  key={`text-${heroSlide}`}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2, duration: 0.6 }}
+            {/* Bottom-left text overlay */}
+            <div className="absolute bottom-10 sm:bottom-16 md:bottom-20 left-4 sm:left-8 md:left-16 max-w-lg z-10">
+              <motion.div
+                key={`text-${heroSlide}`}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.6 }}
+              >
+                <span className="text-emerald-300 text-[9px] sm:text-[10px] uppercase tracking-[0.4em] font-bold mb-2 block">
+                  {slide.subtitle}
+                </span>
+                <h1 className="text-3xl sm:text-5xl md:text-7xl font-extrabold text-white uppercase leading-[0.95] tracking-tight mb-2">
+                  {slide.title}
+                </h1>
+                <p className="text-white/60 text-sm sm:text-base font-light mb-6">
+                  {slide.desc}
+                </p>
+                <Link
+                  to={slide.link}
+                  className="inline-block bg-white text-stone-900 px-6 sm:px-8 py-3 sm:py-3.5 rounded-lg font-extrabold text-[10px] sm:text-xs uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-lg"
                 >
-                  <span className="text-emerald-300 text-[9px] sm:text-[10px] uppercase tracking-[0.4em] font-bold mb-2 block">
-                    {slide.subtitle}
-                  </span>
-                  <h1 className="text-3xl sm:text-5xl md:text-7xl font-extrabold text-white uppercase leading-[0.95] tracking-tight mb-2">
-                    {slide.title}
-                  </h1>
-                  <p className="text-white/60 text-sm sm:text-base font-light mb-6">
-                    {slide.desc}
-                  </p>
-                  <Link
-                    to={slide.link}
-                    className="inline-block bg-white text-stone-900 px-6 sm:px-8 py-3 sm:py-3.5 rounded-lg font-extrabold text-[10px] sm:text-xs uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-lg"
-                  >
-                    Shop Now
-                  </Link>
-                </motion.div>
-              </div>
-            </motion.div>
-          ))}
-        
+                  Shop Now
+                </Link>
+              </motion.div>
+            </div>
+          </motion.div>
+        ))}
+
         {/* Navigation Arrows */}
         {DEFAULT_HERO_SLIDES.length > 1 && (
           <>
@@ -270,50 +284,69 @@ const Home: React.FC = () => {
       {/* ═══ SHOP BY CATEGORY ═══ */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
         {/* Header row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-stone-900 uppercase tracking-tight">Shop by Category</h2>
-          <Link to="/products" className="text-stone-500 hover:text-stone-900 text-xs uppercase tracking-widest font-bold transition-colors">
-            View All →
+        <div className="flex items-center justify-between border-b border-stone-100 pb-8 mb-10">
+          <h2 className="text-2xl md:text-3xl font-black text-stone-900 uppercase tracking-tight">Shop By Category</h2>
+          <Link to="/products" className="group flex items-center gap-2 text-stone-400 hover:text-stone-900 text-[10px] uppercase tracking-[0.2em] font-black transition-all">
+            View All
+            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
           </Link>
+
         </div>
 
-        {/* Category Pills */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 mb-10">
-          <button
-            onClick={() => setSelectedCategory('All')}
-            className={`px-5 py-2.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider border transition-all duration-200 ${selectedCategory === 'All'
-              ? 'bg-stone-900 text-white border-stone-900'
-              : 'bg-white text-stone-700 border-stone-300 hover:border-stone-900 hover:text-stone-900'
-              }`}
-          >
-            All
-          </button>
-          {categories.map((cat) => (
+        {/* Category Pills - Scrollable on mobile, wrap on desktop */}
+        <div className="relative mb-12">
+          <div className="flex overflow-x-auto no-scrollbar pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap gap-3 sm:gap-4 scroll-smooth">
             <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.name)}
-              className={`px-5 py-2.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider border transition-all duration-200 ${selectedCategory === cat.name
-                ? 'bg-stone-900 text-white border-stone-900'
-                : 'bg-white text-stone-700 border-stone-300 hover:border-stone-900 hover:text-stone-900'
+              onClick={() => handleCategoryChange('All')}
+              className={`px-6 py-2.5 rounded-lg text-[10px] sm:text-[11px] font-black uppercase whitespace-nowrap transition-all duration-300 shadow-sm border ${selectedCategory === 'All'
+                ? 'bg-stone-900 text-white border-stone-900 shadow-stone-200 ring-2 ring-stone-900/10'
+                : 'bg-white text-stone-500 border-stone-200 hover:border-stone-400 hover:text-stone-900 hover:shadow-md'
                 }`}
             >
-              {cat.name}
+              All
             </button>
-          ))}
+            {categories.map((cat) => {
+              const decodedName = decodeHtml(cat.name);
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryChange(decodedName)}
+                  className={`px-6 py-2.5 rounded-lg text-[10px] sm:text-[11px] font-black uppercase whitespace-nowrap transition-all duration-300 shadow-sm border ${selectedCategory === decodedName
+                    ? 'bg-stone-900 text-white border-stone-900 shadow-stone-200 ring-2 ring-stone-900/10'
+                    : 'bg-white text-stone-500 border-stone-200 hover:border-stone-400 hover:text-stone-900 hover:shadow-md'
+                    }`}
+                >
+                  {decodedName}
+                </button>
+              );
+            })}
+          </div>
+          {/* Subtle fade indicator for mobile scroll */}
+          <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-white to-transparent pointer-events-none sm:hidden" />
         </div>
 
         {/* Filtered Products Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 sm:gap-x-8 gap-y-10 sm:gap-y-16">
-          {products
-            .filter(p =>
-              selectedCategory === 'All' ||
-              p.categories.some(cat => cat.toLowerCase() === selectedCategory.toLowerCase())
-            )
-            .slice(0, 8)
-            .map(product => (
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 sm:gap-x-8 gap-y-10 sm:gap-y-16 min-h-[400px]">
+          {loading ? (
+            // Skeleton Loader
+            Array(4)
+              .fill(0)
+              .map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-[4/5] bg-stone-100 rounded-2xl mb-4" />
+                  <div className="h-4 bg-stone-100 rounded w-2/3 mb-2" />
+                  <div className="h-4 bg-stone-100 rounded w-1/3" />
+                </div>
+              ))
+          ) : filteredProducts.length > 0 ? (
+            filteredProducts.slice(0, 8).map(product => (
               <ProductCard key={product.id} product={product} />
             ))
-          }
+          ) : (
+            <div className="col-span-full py-20 text-center">
+              <p className="text-stone-400 font-medium">No products found in this category.</p>
+            </div>
+          )}
         </div>
 
       </section>
@@ -333,14 +366,14 @@ const Home: React.FC = () => {
               { label: '₹1000 - ₹2000', min: 1000, max: 2000, image: 'https://images.unsplash.com/photo-1523293836414-f04e712e1f3b?q=80&w=800&auto=format&fit=crop&fm=webp' },
               { label: 'Premium Gifts', min: 2000, max: 50000, image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=800&auto=format&fit=crop&fm=webp' },
             ].map((budget, i) => (
-              <Link 
+              <Link
                 key={i}
                 to={`/products?min_price=${budget.min}&max_price=${budget.max}`}
                 className="group relative aspect-[4/5] rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500"
               >
-                <img 
-                  src={budget.image} 
-                  alt={budget.label} 
+                <img
+                  src={budget.image}
+                  alt={budget.label}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-stone-900/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
@@ -391,9 +424,9 @@ const Home: React.FC = () => {
               viewport={{ once: true }}
               className="relative aspect-square lg:aspect-[4/5] rounded-[2rem] overflow-hidden"
             >
-              <img 
-                src="https://images.unsplash.com/photo-1523293836414-f04e712e1f3b?q=80&w=1920&auto=format&fit=crop" 
-                alt="Corporate Gifting" 
+              <img
+                src="https://images.unsplash.com/photo-1523293836414-f04e712e1f3b?q=80&w=1920&auto=format&fit=crop"
+                alt="Corporate Gifting"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-stone-900/80 to-transparent" />
@@ -644,7 +677,7 @@ const Home: React.FC = () => {
         <div className="bg-stone-50 rounded-[3rem] p-8 md:p-16 border border-stone-100 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-teal-500/5 rounded-full -ml-16 -mb-16 blur-3xl" />
-          
+
           <div className="max-w-2xl mx-auto text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-serif text-stone-900 mb-4">Request a <span className="italic">Quote</span></h2>
             <p className="text-stone-500 font-light">Fill out the form below and our corporate gifting experts will get back to you within 24 hours.</p>

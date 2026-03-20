@@ -12,6 +12,16 @@
   }
 }
 
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
 .glass-card {
   @apply bg-white/40 backdrop-blur-xl border border-white/20;
 }
