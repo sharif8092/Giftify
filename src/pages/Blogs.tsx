@@ -75,6 +75,9 @@ const Blogs: React.FC = () => {
                                     <img
                                         src={post.image || '/Hero14.jpg'}
                                         alt={post.imageAlt || post.title}
+                                        width="600"
+                                        height="375"
+                                        decoding="async"
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
                                     />
                                     <div className="absolute top-6 left-6">

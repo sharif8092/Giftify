@@ -354,7 +354,7 @@ app.get('/sitemap.xml', async (req, res) => {
     }
 });
 
-// SSR Route Handler for Individual Blog Posts
+// SSR Route Handler for Individual Blog Posts - Optimized for Core Web Vitals
 app.get('/blog/:slug', async (req, res) => {
     const { slug } = req.params;
     const indexPath = path.join(__dirname, 'dist', 'index.html');
@@ -366,7 +366,7 @@ app.get('/blog/:slug', async (req, res) => {
     let html = fs.readFileSync(indexPath, 'utf8');
     
     try {
-        const cacheKey = `post_ssr_${slug}`;
+        const cacheKey = `post_ssr_v2_${slug}`;
         let postData = wpCache.get(cacheKey)?.data;
 
         // 1. Try Memory Cache
@@ -376,7 +376,7 @@ app.get('/blog/:slug', async (req, res) => {
             if (fs.existsSync(filePath)) {
                 try {
                     const fileContent = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-                    if (Date.now() - fileContent.timestamp < CACHE_TTL * 10) { // FS cache lasts longer
+                    if (Date.now() - fileContent.timestamp < CACHE_TTL * 10) { 
                         postData = fileContent.data;
                         wpCache.set(cacheKey, { data: postData, timestamp: fileContent.timestamp });
                     }
@@ -410,8 +410,12 @@ app.get('/blog/:slug', async (req, res) => {
             const author = post._embedded?.author?.[0]?.name || 'Admin';
             const dateStr = new Date(post.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-            // 1. Meta Injection
+            // 1. Meta Injection & LCP Preloading
             html = html.replace(/<title>.*?<\/title>/, `<title>${title} | Giftify Journal</title>`);
+            
+            // Preload primary LCP image
+            const lcpPreload = `<link rel="preload" as="image" href="${image}" fetchpriority="high">`;
+            
             const metaTags = `
                 <meta name="description" content="${excerpt}" />
                 <link rel="canonical" href="${url}" />
@@ -457,17 +461,25 @@ app.get('/blog/:slug', async (req, res) => {
                 </script>
             `;
 
-            // 3. Hydration Data
+            // 3. Hydration Data & Critical CSS
             const hydrationScript = `<script>window.__INITIAL_DATA__ = ${JSON.stringify(postData)};</script>`;
-            html = html.replace('</head>', `${metaTags}${schemas}${hydrationScript}</head>`);
+            const criticalCss = `<style>
+                .ssr-container { font-family: sans-serif; }
+                .hero-header { height: 70vh; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; }
+                .blog-article { max-width: 800px; margin: -100px auto 100px; background: white; padding: 40px; border-radius: 3rem; }
+            </style>`;
 
-            // 4. Pre-rendered HTML in #root
+            html = html.replace('</head>', `${lcpPreload}${metaTags}${schemas}${hydrationScript}${criticalCss}</head>`);
+
+            // 4. Pre-rendered HTML in #root (Optimized for CLS/LCP)
             const injectedContent = injectInternalLinks(post.content?.rendered);
             const relatedPostsHtml = related.map(p => `
                 <div style="border: 1px solid #e5e7eb; border-radius: 1rem; overflow: hidden; background: white;">
-                    <img src="${p._embedded?.['wp:featuredmedia']?.[0]?.source_url || '/Hero14.jpg'}" alt="${p.title.rendered}" style="width: 100%; height: 150px; object-fit: cover;" />
+                    <div style="aspect-ratio: 16/10; background: #f3f4f6; overflow: hidden;">
+                        <img src="${p._embedded?.['wp:featuredmedia']?.[0]?.source_url || '/Hero14.jpg'}" alt="${p.title.rendered}" loading="lazy" width="400" height="250" style="width: 100%; height: 100%; object-fit: cover;" />
+                    </div>
                     <div style="padding: 1rem;">
-                        <h4 style="margin: 0; font-family: serif; font-size: 1.1rem;">${p.title.rendered}</h4>
+                        <p style="margin: 0; font-family: serif; font-size: 1.1rem; color: #111827;">${p.title.rendered}</p>
                         <a href="/blog/${p.slug}" style="color: #065f46; text-decoration: none; font-weight: bold; font-size: 0.8rem; text-transform: uppercase; margin-top: 1rem; display: inline-block;">Read Story →</a>
                     </div>
                 </div>
@@ -475,18 +487,18 @@ app.get('/blog/:slug', async (req, res) => {
 
             const ssrContent = `
                 <div class="ssr-container" style="background: #fdfbf7; min-height: 100vh;">
-                    <header style="height: 60vh; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #000;">
-                        <img src="${image}" style="position: absolute; width: 100%; height: 100%; object-fit: cover; opacity: 0.6;" />
+                    <header class="hero-header" style="height: 70vh; position: relative;">
+                        <img src="${image}" fetchpriority="high" decoding="async" width="1200" height="800" style="position: absolute; width: 100%; height: 100%; object-fit: cover; opacity: 0.6;" />
                         <div style="position: relative; z-index: 10; text-align: center; color: white; padding: 0 20px;">
                             <h1 style="font-size: clamp(2rem, 8vw, 5rem); font-family: serif; margin: 0;">${title}</h1>
                             <p style="text-transform: uppercase; letter-spacing: 0.2em; font-weight: bold; margin-top: 20px;">By ${author} • ${dateStr}</p>
                         </div>
                     </header>
-                    <article style="max-width: 800px; margin: -100px auto 100px; position: relative; z-index: 20; background: white; padding: 60px 40px; border-radius: 3rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);">
+                    <article class="blog-article" style="position: relative; z-index: 20; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);">
                         <div class="prose" style="font-family: sans-serif; line-height: 1.8; color: #374151; font-size: 1.1rem;">
                             ${injectedContent}
                         </div>
-                        <div style="margin-top: 80px; border-top: 1px solid #f3f4f6; pt: 40px;">
+                        <div style="margin-top: 80px; border-top: 1px solid #f3f4f6; padding-top: 40px;">
                             <h3 style="font-family: serif; font-size: 2rem; margin-bottom: 30px;">Related Stories</h3>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
                                 ${relatedPostsHtml}

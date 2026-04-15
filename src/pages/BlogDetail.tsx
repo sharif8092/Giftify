@@ -92,6 +92,10 @@ const BlogDetail: React.FC = () => {
                         src={post.image || "/Hero14.jpg"}
                         alt={post.imageAlt || post.title}
                         className="w-full h-full object-cover"
+                        fetchpriority="high"
+                        decoding="async"
+                        width="1920"
+                        height="1080"
                     />
                     <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-[2px]" />
                 </motion.div>
